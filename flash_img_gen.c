@@ -39,8 +39,10 @@ void image_add_file_to_list(tFileList **list, const char *path, const char *fnam
 		{
 			if (*list)
 			{	
+				uint32_t size_prev;
+
 				ptr = *list;
-				
+
 				do 
 				{
 					if (!ptr->next)
@@ -49,10 +51,11 @@ void image_add_file_to_list(tFileList **list, const char *path, const char *fnam
 					}
 					ptr = ptr->next;
 				} while(1);
-				
+				size_prev = ptr->size;
+
 				ptr->next = (tFileList *)malloc(sizeof(tFileList));
 				ptr = ptr->next;
-				ptr->row.offset = ptr->row.offset + ptr->size;
+				ptr->row.offset = ptr->row.offset + size_prev;
 			} else
 			{
 				ptr = (tFileList *)malloc(sizeof(tFileList));
@@ -60,9 +63,9 @@ void image_add_file_to_list(tFileList **list, const char *path, const char *fnam
 				*list = ptr;
 			}
 			ptr->next = NULL;
+			ptr->size = st.st_size;
 			//TODO
 			strncpy(ptr->row.fname, fname, MAX_FILE_NAME);
-			ptr->size = st.st_size;
 		}
 	}
 }
@@ -72,6 +75,7 @@ int image_write_header(int fd, tFileList *head, uint32_t file_count, int conv)
 	int i;
 	tFileList *current = head;
 	uint16_t row_counter;
+	uint32_t start_data = file_count * sizeof(tHeaderRow)  + sizeof(row_counter);
 	
 	if (conv)
 	{
@@ -90,6 +94,7 @@ int image_write_header(int fd, tFileList *head, uint32_t file_count, int conv)
 	
 	for (i = 0; i < file_count; i++)
 	{
+		current->row.offset += start_data;
 		if (conv)
 		{
 			current->row.offset = htons(current->row.offset);
